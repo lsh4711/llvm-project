@@ -48,6 +48,16 @@ namespace addressof {
   int *pbf = __builtin_addressof(u.n); // expected-error {{address of bit-field requested}}
 
   S *ptmp = __builtin_addressof(S{}); // expected-error {{taking the address of a temporary}} expected-warning {{temporary whose address is used as value of local variable 'ptmp' will be destroyed at the end of the full-expression}}
+
+  template <typename T> void tmpl(T) {}
+  static_assert(__builtin_addressof(tmpl<int>) == &tmpl<int>, "");
+  void (*ptmpl)(long) = __builtin_addressof(tmpl);
+  auto atmpl = __builtin_addressof(tmpl); // expected-error {{variable 'atmpl' with type 'auto' has incompatible initializer of type '<overloaded function type>'}}
+
+  void ovl(int); // expected-note {{candidate function}}
+  void ovl(long); // expected-note {{candidate function}}
+  void (*povl)(int) = __builtin_addressof(ovl);
+  int iovl = __builtin_addressof(ovl); // expected-error {{address of overloaded function 'ovl' does not match required type 'int'}}
 }
 
 namespace function_start {

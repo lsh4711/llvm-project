@@ -872,7 +872,7 @@ documentation](CIR/index.md) for more information regarding ClangIR's status and
   `sized_by_or_null` describe the size in bytes rather than a count of elements,
   they are now correctly accepted on such pointers.
 
-- Fixed rejecting valid reference initialization with conversion function templates whose returned type is depending on 
+- Fixed rejecting valid reference initialization with conversion function templates whose returned type is depending on
   template parameters. (#GH226984)
 
 - Fixed a crash when an `address_space` attribute with a dependent argument was
@@ -1120,6 +1120,10 @@ documentation](CIR/index.md) for more information regarding ClangIR's status and
 - Fixed missing destructor cleanups and incorrect initialization for lambda
   init-captures in default member initializers used during aggregate
   initialization. (#GH196469)
+
+- Fixed a crash when the operand of `__builtin_addressof` is an overload set.
+  The overload set is now resolved from the target type, like the operand of
+  `&`. (#GH77928)
 
 #### Bug Fixes to AST Handling
 

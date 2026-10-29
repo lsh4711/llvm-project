@@ -2466,9 +2466,12 @@ static bool IsStandardConversion(Sema &S, Expr* From, QualType ToType,
                "Non-address-of operator on non-static member address");
         FromType = S.Context.getMemberPointerType(
             FromType, /*Qualifier=*/std::nullopt, Method->getParent());
-      } else if (isa<UnaryOperator>(From->IgnoreParens())) {
-        assert(cast<UnaryOperator>(From->IgnoreParens())->getOpcode() ==
-               UO_AddrOf &&
+      } else if (isa<UnaryOperator>(From->IgnoreParens()) ||
+                 isa<CallExpr>(From->IgnoreParens())) {
+        assert(((isa<UnaryOperator>(From->IgnoreParens()) &&
+                 cast<UnaryOperator>(From->IgnoreParens())->getOpcode() ==
+                     UO_AddrOf) ||
+                isa<CallExpr>(From->IgnoreParens())) &&
                "Non-address-of operator for overloaded function expression");
         FromType = S.Context.getPointerType(FromType);
       }
@@ -17449,6 +17452,22 @@ ExprResult Sema::FixOverloadedFunctionReference(Expr *E, DeclAccessPair Found,
 
     return CreateBuiltinUnaryOp(UnOp->getOperatorLoc(), UO_AddrOf,
                                 SubExpr.get());
+  }
+
+  if (auto *Call = dyn_cast<CallExpr>(E)) {
+    ExprResult SubExpr =
+        FixOverloadedFunctionReference(Call->getArg(0), Found, Fn);
+    if (SubExpr.isInvalid())
+      return ExprError();
+    if (SubExpr.get() == Call->getArg(0))
+      return Call;
+
+    QualType ResultType = CheckAddressOfOperand(SubExpr, Call->getBeginLoc());
+    if (ResultType.isNull())
+      return ExprError();
+    return CallExpr::Create(Context, Call->getCallee(), {SubExpr.get()},
+                            ResultType, VK_PRValue, Call->getRParenLoc(),
+                            CurFPFeatureOverrides());
   }
 
   if (UnresolvedLookupExpr *ULE = dyn_cast<UnresolvedLookupExpr>(E)) {

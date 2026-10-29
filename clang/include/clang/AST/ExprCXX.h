@@ -3208,9 +3208,13 @@ public:
     bool HasParen = isa<ParenExpr>(E);
 
     E = E->IgnoreParens();
-    if (isa<UnaryOperator>(E)) {
-      assert(cast<UnaryOperator>(E)->getOpcode() == UO_AddrOf);
-      E = cast<UnaryOperator>(E)->getSubExpr();
+    if (isa<UnaryOperator>(E) || isa<CallExpr>(E)) {
+      if (auto *UO = dyn_cast<UnaryOperator>(E)) {
+        assert(UO->getOpcode() == UO_AddrOf);
+        E = UO->getSubExpr();
+      } else {
+        E = cast<CallExpr>(E)->getArg(0);
+      }
       auto *Ovl = cast<OverloadExpr>(E->IgnoreParens());
 
       Result.HasFormOfMemberPointer = (E == Ovl && Ovl->getQualifier());
